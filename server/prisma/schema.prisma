@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  password  String
+  role      String   @default("CASHIER")
+  storeId   String?
+  store     Store?   @relation(fields: [storeId], references: [id])
+  sales     Sale[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Store {
+  id        String   @id @default(uuid())
+  name      String
+  address   String?
+  phone     String?
+  currency  String   @default("USD")
+  timezone  String   @default("UTC")
+  config    String?
+  users     User[]
+  sales     Sale[]
+  products  Product[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("stores")
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  sku         String   @unique
+  name        String
+  description String?
+  price       Decimal
+  costPrice   Decimal?
+  taxCode     String?
+  unit        String   @default("pcs")
+  barcode     String?  @unique
+  stockLevel  Int      @default(0)
+  categoryId  String?
+  storeId     String
+  store       Store    @relation(fields: [storeId], references: [id])
+  saleLines   SaleLine[]
+  inventory   InventoryTransaction[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("products")
+}
+
+model InventoryTransaction {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
+  type      String
+  source    String?
+  createdAt DateTime @default(now())
+
+  @@map("inventory_transactions")
+}
+
+model Customer {
+  id            String   @id @default(uuid())
+  name          String
+  email         String?  @unique
+  phone         String?
+  loyaltyPoints Int      @default(0)
+  sales         Sale[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("customers")
+}
+
+model Sale {
+  id            String   @id @default(uuid())
+  storeId       String
+  store         Store    @relation(fields: [storeId], references: [id])
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  customerId    String?
+  customer      Customer? @relation(fields: [customerId], references: [id])
+  total         Decimal
+  taxTotal      Decimal
+  status        String     @default("COMPLETED")
+  paymentMethod String?
+  items         SaleLine[]
+  payments      Payment[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("sales")
+}
+
+model SaleLine {
+  id        String   @id @default(uuid())
+  saleId    String
+  sale      Sale     @relation(fields: [saleId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Decimal
+  discount  Decimal  @default(0)
+
+  @@map("sale_lines")
+}
+
+model Payment {
+  id               String   @id @default(uuid())
+  saleId           String
+  sale             Sale     @relation(fields: [saleId], references: [id])
+  amount           Decimal
+  method           String
+  providerResponse String?
+  createdAt        DateTime @default(now())
+
+  @@map("payments")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  entity    String
+  action    String
+  userId    String?
+  details   String?
+  createdAt DateTime @default(now())
+
+  @@map("audit_log")
+}
+
+
